@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6
+    container_name: fantasy-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: fantasy-backend
+    environment:
+      - MONGO_URL=mongodb://mongo:27017
+      - DB_NAME=fantasy_draft
+      - SECRET_KEY=change-this
+      - LEAGUE_PASSWORD=super-secret-shared-password
+      - CORS_ORIGINS=http://localhost:5173
+    depends_on:
+      - mongo
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: fantasy-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+volumes:
+  mongo-data:
