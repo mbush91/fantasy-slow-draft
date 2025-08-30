@@ -33,3 +33,7 @@ def teams_col():
 
 def config_col():
     return get_db()["draft_config"]
+
+
+def leagues_col():
+    return get_db()["leagues"]

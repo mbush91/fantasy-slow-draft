@@ -5,7 +5,7 @@ from typing import List
 from bson import ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
-from ..auth import get_current_team, get_current_league
+from ..auth import get_current_team, get_current_league, get_current_admin
 from ..db import players_col
 from ..schemas import PlayerOut
 
@@ -18,7 +18,10 @@ async def upload_players(
     overwrite: bool = Query(True),
     team_name: str = Depends(get_current_team),
     league_name: str = Depends(get_current_league),
+    is_admin: bool = Depends(get_current_admin),
 ):
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
     # Read the uploaded CSV file
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Please upload a CSV file")

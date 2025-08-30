@@ -29,15 +29,15 @@ The API runs on http://localhost:8000
 - MONGO_URL=mongodb://localhost:27017
 - DB_NAME=fantasy_draft
 - SECRET_KEY=change-this
-- LEAGUE_PASSWORD=shared-league-password
 - CORS_ORIGINS=http://localhost:5173
 
 ## API Overview
 
+- POST /auth/create_league (body: league_name, team_name, league_password) → creates league and makes team admin
 - POST /auth/login (body: league_name, team_name, league_password)
-- POST /players/upload?overwrite=true
+- POST /players/upload?overwrite=true (admin only)
 - GET  /players/available
-- POST /draft/config
+- POST /draft/config (admin only)
 - GET  /draft/state
 - POST /draft/pick
 - GET  /teams/me

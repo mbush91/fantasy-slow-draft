@@ -3,7 +3,7 @@ from typing import Dict
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..auth import get_current_team, get_current_league
+from ..auth import get_current_team, get_current_league, get_current_admin
 from ..db import config_col, players_col
 from ..schemas import DraftConfigIn, DraftPickIn, DraftStateOut, PlayerOut
 
@@ -15,7 +15,14 @@ async def _get_config_doc(league_name: str) -> Dict | None:
 
 
 @router.post("/config")
-async def set_config(body: DraftConfigIn, team_name: str = Depends(get_current_team), league_name: str = Depends(get_current_league)):
+async def set_config(
+    body: DraftConfigIn,
+    team_name: str = Depends(get_current_team),
+    league_name: str = Depends(get_current_league),
+    is_admin: bool = Depends(get_current_admin),
+):
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
     # Upsert single config doc
     doc = {
         "_id": f"config:{league_name}",

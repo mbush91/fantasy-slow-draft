@@ -48,3 +48,12 @@ async def get_current_league(credentials: HTTPAuthorizationCredentials = Depends
         return league_name
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+
+async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> bool:
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return bool(payload.get("is_admin", False))
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")

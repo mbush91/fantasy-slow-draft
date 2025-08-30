@@ -8,6 +8,7 @@ import DraftConfigForm from '../components/DraftConfigForm'
 
 export default function Draft({ onLogout }) {
   const teamName = localStorage.getItem('team_name')
+  const isAdmin = localStorage.getItem('is_admin') === 'true'
   const [draftState, setDraftState] = useState(null)
   const [myTeam, setMyTeam] = useState(null)
   const [players, setPlayers] = useState([])
@@ -54,11 +55,13 @@ export default function Draft({ onLogout }) {
         <div>
           <h3>My Roster</h3>
           <TeamRoster roster={myTeam?.players || []} counts={myTeam?.counts_by_position || {}} />
-          <div className="card">
-            <h3>Admin</h3>
-            <CSVUpload onUploaded={loadAll} />
-            <DraftConfigForm onSaved={loadAll} />
-          </div>
+          {isAdmin && (
+            <div className="card">
+              <h3>Admin</h3>
+              <CSVUpload onUploaded={loadAll} />
+              <DraftConfigForm onSaved={loadAll} />
+            </div>
+          )}
         </div>
         <div>
           <h3>Available Players</h3>

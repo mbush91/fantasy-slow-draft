@@ -1,6 +1,6 @@
 # Fantasy Draft App
 
-FastAPI backend + MongoDB + React frontend for running a league draft with a shared league password and team names.
+FastAPI backend + MongoDB + React frontend for running a league draft with per-league passwords and team names. The team that creates a league becomes the admin.
 
 ## Prerequisites
 
@@ -8,7 +8,7 @@ FastAPI backend + MongoDB + React frontend for running a league draft with a sha
 - Node.js 18+
 - MongoDB running locally on port 27017 (or use Docker, see below)
 
-## Quick Start
+## Quick Start (Local dev)
 
 1) Backend
 
@@ -30,19 +30,31 @@ npm run dev
 
 Frontend runs at http://localhost:5173 and calls API at http://localhost:8000 by default.
 
-## Docker (MongoDB)
+## Docker (Full stack)
 
-If you don't have MongoDB locally, use Docker:
-
-```bash
-docker run -d --name fantasy-mongo -p 27017:27017 -v fantasy-mongo-data:/data/db mongo:6
-```
-
-Stop/remove with:
+Use Docker Compose to run MongoDB, backend, and frontend together:
 
 ```bash
-docker stop fantasy-mongo && docker rm fantasy-mongo
+docker compose up -d --build
 ```
+
+Then open http://localhost:5173
+
+Stop with:
+
+```bash
+docker compose down
+```
+
+## Create or Join a League
+
+- Create League: On the login page, switch to "Create New League". Enter a unique League Name, set a League Password, and your Team Name. You'll be logged in as admin.
+- Join Existing League: Use the same League Name, your Team Name, and the league's password. You'll be auto-added to the league.
+
+Admin-only actions:
+- Upload player CSV
+- Set draft configuration (position limits, draft order)
+
 
 ## CSV Format
 
@@ -56,8 +68,8 @@ Christian McCaffrey,RB
 
 ## Draft Flow
 
-- Commission(er) sets draft config (position limits, draft order).
-- Teams log in with the shared league password and their team name.
+- Admin sets draft config (position limits, draft order).
+- Teams log in with the league name and password and their team name.
 - CSV uploaded to populate available players.
 - On your turn, pick a player. Limits per position enforced.
 

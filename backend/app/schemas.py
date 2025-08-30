@@ -8,11 +8,18 @@ class LoginRequest(BaseModel):
     team_name: str = Field(min_length=1)
 
 
+class LeagueCreateRequest(BaseModel):
+    league_name: str = Field(min_length=1)
+    league_password: str = Field(min_length=4)
+    team_name: str = Field(min_length=1)
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     team_name: str
     league_name: str
+    is_admin: bool = False
 
 
 class PlayerOut(BaseModel):
