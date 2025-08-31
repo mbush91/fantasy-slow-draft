@@ -1,4 +1,5 @@
 from typing import Dict
+from datetime import datetime
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
@@ -90,7 +91,10 @@ async def make_pick(body: DraftPickIn, team_name: str = Depends(get_current_team
             raise HTTPException(status_code=400, detail=f"Roster limit reached for {position}")
 
     # Draft player
-    await pcol.update_one({"_id": oid, "drafted_by": None, "league_name": league_name}, {"$set": {"drafted_by": team_name}})
+    await pcol.update_one(
+        {"_id": oid, "drafted_by": None, "league_name": league_name},
+        {"$set": {"drafted_by": team_name, "drafted_at": datetime.utcnow()}},
+    )
 
     # Advance pick
     next_idx = (idx + 1) % len(order)

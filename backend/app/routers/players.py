@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from ..auth import get_current_team, get_current_league, get_current_admin
 from ..db import players_col
-from ..schemas import PlayerOut
+from ..schemas import PlayerOut, DraftedPlayerOut
 
 router = APIRouter()
 
@@ -67,3 +67,30 @@ async def list_available_players(team_name: str = Depends(get_current_team), lea
             )
         )
     return players
+
+
+@router.get("/drafted", response_model=List[DraftedPlayerOut])
+async def list_drafted_players(
+    limit: int = Query(10, ge=1, le=100),
+    team_name: str = Depends(get_current_team),
+    league_name: str = Depends(get_current_league),
+):
+    col = players_col()
+    # Only players that have been drafted in this league. Sort newest first by drafted_at (missing last), then _id.
+    cursor = (
+        col.find({"drafted_by": {"$ne": None}, "league_name": league_name})
+        .sort([("drafted_at", -1), ("_id", -1)])
+        .limit(limit)
+    )
+    out: List[DraftedPlayerOut] = []
+    async for doc in cursor:
+        out.append(
+            DraftedPlayerOut(
+                id=str(doc.get("_id")),
+                name=doc.get("name"),
+                position=doc.get("position"),
+                drafted_by=str(doc.get("drafted_by")),
+                drafted_at=doc.get("drafted_at"),
+            )
+        )
+    return out

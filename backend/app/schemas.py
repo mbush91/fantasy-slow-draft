@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -49,3 +50,11 @@ class TeamRosterOut(BaseModel):
     team_name: str
     players: List[PlayerOut]
     counts_by_position: Dict[str, int]
+
+
+class DraftedPlayerOut(BaseModel):
+    id: str
+    name: str
+    position: str
+    drafted_by: str
+    drafted_at: Optional[datetime] = None
