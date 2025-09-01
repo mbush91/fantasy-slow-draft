@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 
 from ..auth import create_access_token
-from ..db import teams_col, leagues_col
+from ..db import teams_col, leagues_col, config_col
 from ..schemas import LoginRequest, TokenResponse, LeagueCreateRequest
 
 load_dotenv()
@@ -55,10 +55,13 @@ async def login(body: LoginRequest):
     if not bcrypt.checkpw(body.league_password.encode("utf-8"), ldoc["password_hash"].encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid league password")
 
-    # Ensure team exists; auto-add if not
+    # Ensure team exists; auto-add if not (unless draft already started)
     tcol = teams_col()
     team = await tcol.find_one({"team_name": team_name, "league_name": league_name})
     if not team:
+        cfg = await config_col().find_one({"_id": f"config:{league_name}"})
+        if cfg and cfg.get("draft_started"):
+            raise HTTPException(status_code=403, detail="Draft already started. No new teams can be added to this league.")
         await tcol.insert_one({"team_name": team_name, "league_name": league_name, "is_admin": False})
         team = {"team_name": team_name, "league_name": league_name, "is_admin": False}
 

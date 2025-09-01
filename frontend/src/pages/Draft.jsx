@@ -135,6 +135,19 @@ export default function Draft({ onLogout }) {
             <div className="card">
               <h3>Admin</h3>
               <CSVUpload onUploaded={loadAll} />
+              {!draftState?.draft_started && (
+                <div style={{ margin: '8px 0' }}>
+                  <button
+                    onClick={async () => { try { await api.post('/draft/start'); await loadAll() } catch (e) { alert(e.response?.data?.detail || 'Failed to start draft') } }}
+                    disabled={!draftState?.draft_order?.length}
+                  >
+                    Start Draft
+                  </button>
+                  {!draftState?.draft_order?.length && (
+                    <p className="muted">Set a draft order before starting.</p>
+                  )}
+                </div>
+              )}
               <DraftConfigForm
                 onSaved={loadAll}
                 positionLimits={draftState?.position_limits}

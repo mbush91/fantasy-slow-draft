@@ -41,6 +41,7 @@ class DraftStateOut(BaseModel):
     draft_order: List[str]
     current_pick_index: int
     current_team: Optional[str]
+    draft_started: bool = False
 
 
 class DraftPickIn(BaseModel):

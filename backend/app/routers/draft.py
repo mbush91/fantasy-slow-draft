@@ -40,7 +40,7 @@ async def set_config(
 async def get_state(team_name: str = Depends(get_current_team), league_name: str = Depends(get_current_league)):
     cfg = await _get_config_doc(league_name)
     if not cfg:
-        return DraftStateOut(position_limits={}, draft_order=[], current_pick_index=0, current_team=None)
+        return DraftStateOut(position_limits={}, draft_order=[], current_pick_index=0, current_team=None, draft_started=False)
     idx = cfg.get("current_pick_index", 0)  # total picks made so far (0-based)
     order = cfg.get("draft_order", [])
     n = len(order)
@@ -59,7 +59,23 @@ async def get_state(team_name: str = Depends(get_current_team), league_name: str
         draft_order=order,
         current_pick_index=idx,
         current_team=current_team,
+        draft_started=bool(cfg.get("draft_started", False)),
     )
+
+
+@router.post("/start")
+async def start_draft(
+    team_name: str = Depends(get_current_team),
+    league_name: str = Depends(get_current_league),
+    is_admin: bool = Depends(get_current_admin),
+):
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    cfg = await _get_config_doc(league_name)
+    if not cfg:
+        raise HTTPException(status_code=400, detail="Draft not configured")
+    await config_col().update_one({"_id": f"config:{league_name}"}, {"$set": {"draft_started": True}})
+    return {"ok": True, "draft_started": True}
 
 
 @router.post("/pick")
