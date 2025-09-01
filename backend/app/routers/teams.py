@@ -4,11 +4,23 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from ..auth import get_current_team, get_current_league
-from ..db import players_col
+from ..db import players_col, teams_col
 from ..schemas import PlayerOut, TeamRosterOut
 
 router = APIRouter()
 
+
+@router.get("/list", response_model=List[str])
+async def list_teams(team_name: str = Depends(get_current_team), league_name: str = Depends(get_current_league)):
+    # Return all team names registered to this league
+    col = teams_col()
+    names: List[str] = []
+    cursor = col.find({"league_name": league_name}, {"team_name": 1}).sort("team_name", 1)
+    async for doc in cursor:
+        n = doc.get("team_name")
+        if n:
+            names.append(n)
+    return names
 
 @router.get("/me", response_model=TeamRosterOut)
 async def my_team(team_name: str = Depends(get_current_team), league_name: str = Depends(get_current_league)):

@@ -17,6 +17,7 @@ export default function Draft({ onLogout }) {
   const [recentPicks, setRecentPicks] = useState([])
   const [positionFilter, setPositionFilter] = useState('')
   const [loading, setLoading] = useState(false)
+  const [teams, setTeams] = useState([])
   const isMyTurn = useMemo(() => draftState?.current_team === teamName, [draftState, teamName])
 
   const computeUpcoming = (count = 10) => {
@@ -38,16 +39,18 @@ export default function Draft({ onLogout }) {
   const loadAll = async () => {
     setLoading(true)
     try {
-      const [stateRes, teamRes, playersRes, draftedRes] = await Promise.all([
+      const [stateRes, teamRes, playersRes, draftedRes, teamsRes] = await Promise.all([
         api.get('/draft/state'),
         api.get('/teams/me'),
         api.get('/players/available', { params: { position: positionFilter || undefined } }),
         api.get('/players/drafted', { params: { limit: 10 } }),
+        api.get('/teams/list'),
       ])
       setDraftState(stateRes.data)
       setMyTeam(teamRes.data)
       setPlayers(playersRes.data)
       setRecentPicks(draftedRes.data)
+      setTeams(teamsRes.data || [])
       // Load viewer roster based on current selection
       if (selectedTeam === teamName) {
         setSelectedRoster(teamRes.data)
@@ -133,9 +136,9 @@ export default function Draft({ onLogout }) {
           </div>
           <div className="card" style={{ marginTop: 16 }}>
             <h3>Teams</h3>
-            {draftState?.draft_order?.length ? (
+            {teams && teams.length ? (
               <ul>
-                {draftState.draft_order.map((t) => (
+                {teams.map((t) => (
                   <li key={t}>
                     <button
                       onClick={() => setSelectedTeam(t)}
