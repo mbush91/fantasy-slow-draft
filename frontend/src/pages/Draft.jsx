@@ -131,6 +131,27 @@ export default function Draft({ onLogout }) {
             </div>
             <TeamRoster roster={selectedRoster?.players || []} counts={selectedRoster?.counts_by_position || {}} />
           </div>
+          <div className="card" style={{ marginTop: 16 }}>
+            <h3>Teams</h3>
+            {draftState?.draft_order?.length ? (
+              <ul>
+                {draftState.draft_order.map((t) => (
+                  <li key={t}>
+                    <button
+                      onClick={() => setSelectedTeam(t)}
+                      disabled={selectedTeam === t}
+                      style={{ background: 'none', border: 'none', padding: 0, color: '#1a73e8', cursor: selectedTeam === t ? 'default' : 'pointer' }}
+                      title={selectedTeam === t ? 'Currently viewing' : 'View roster'}
+                    >
+                      {t} {t === teamName ? '(you)' : ''}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No teams yet.</p>
+            )}
+          </div>
           {isAdmin && (
             <div className="card">
               <h3>Admin</h3>

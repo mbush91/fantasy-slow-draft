@@ -27,6 +27,11 @@ services:
     container_name: fantasy-frontend
     environment:
       - VITE_API_URL=${BACKEND_URL:-http://localhost:8012}
+      # Vite dev server domain/HMR settings (optional; helpful behind proxies/TLS)
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-}
+      - HMR_HOST=${HMR_HOST:-}
+      - HMR_HTTPS=${HMR_HTTPS:-false}
+      - HMR_CLIENT_PORT=${HMR_CLIENT_PORT:-}
     depends_on:
       - backend
     ports:
