@@ -115,14 +115,47 @@ async def make_pick(body: DraftPickIn, team_name: str = Depends(get_current_team
     if player.get("drafted_by"):
         raise HTTPException(status_code=400, detail="Player already drafted")
 
-    # Enforce position limits
+    # Enforce position limits, with support for ANY slots
     position = player.get("position")
-    limits: Dict[str, int] = cfg.get("position_limits", {})
-    limit = limits.get(position)
-    if limit is not None:
-        drafted_count = await pcol.count_documents({"drafted_by": team_name, "position": position, "league_name": league_name})
-        if drafted_count >= limit:
-            raise HTTPException(status_code=400, detail=f"Roster limit reached for {position}")
+    limits: Dict[str, int] = cfg.get("position_limits", {}) or {}
+    any_limit = int(limits.get("ANY", 0) or 0)
+    pos_limit = limits.get(position)
+    drafted_pos = await pcol.count_documents({"drafted_by": team_name, "position": position, "league_name": league_name})
+
+    # If specific limit exists and not yet reached, allow immediately
+    try:
+        pos_limit_int = int(pos_limit) if pos_limit is not None else None
+    except (TypeError, ValueError):
+        pos_limit_int = None
+    if pos_limit_int is not None and drafted_pos < pos_limit_int:
+        pass  # allowed
+    else:
+        # Either limit reached or no specific cap exists -> rely on ANY pool
+        if any_limit <= 0:
+            if pos_limit_int is None:
+                raise HTTPException(status_code=400, detail=f"No ANY slots configured and no specific cap for {position}")
+            else:
+                raise HTTPException(status_code=400, detail=f"Roster limit reached for {position}")
+        # Compute ANY usage as excess picks over (per-position cap or 0 if not set)
+        counts_by_pos: Dict[str, int] = {}
+        async for doc in pcol.find({"drafted_by": team_name, "league_name": league_name}, {"position": 1}):
+            p = doc.get("position")
+            counts_by_pos[p] = counts_by_pos.get(p, 0) + 1
+        any_used = 0
+        for p, picked in counts_by_pos.items():
+            if p == "ANY":
+                continue
+            lim_val = limits.get(p)
+            try:
+                lim_int = int(lim_val) if lim_val is not None else 0
+            except (TypeError, ValueError):
+                lim_int = 0
+            excess = picked - lim_int
+            if excess > 0:
+                any_used += excess
+        any_remaining = any_limit - any_used
+        if any_remaining <= 0:
+            raise HTTPException(status_code=400, detail=f"No ANY slots remaining")
 
     # Draft player
     await pcol.update_one(

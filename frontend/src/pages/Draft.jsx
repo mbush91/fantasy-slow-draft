@@ -163,7 +163,7 @@ export default function Draft({ onLogout }) {
             <label style={{ marginRight: 8 }}>Filter by position:</label>
             <select value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)}>
               <option value="">All</option>
-              {(draftState?.position_limits ? Object.keys(draftState.position_limits) : []).map((pos) => (
+              {(draftState?.position_limits ? Object.keys(draftState.position_limits).filter((k) => k !== 'ANY') : []).map((pos) => (
                 <option key={pos} value={pos}>{pos}</option>
               ))}
             </select>
