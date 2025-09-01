@@ -41,9 +41,19 @@ async def get_state(team_name: str = Depends(get_current_team), league_name: str
     cfg = await _get_config_doc(league_name)
     if not cfg:
         return DraftStateOut(position_limits={}, draft_order=[], current_pick_index=0, current_team=None)
-    idx = cfg.get("current_pick_index", 0)
+    idx = cfg.get("current_pick_index", 0)  # total picks made so far (0-based)
     order = cfg.get("draft_order", [])
-    current_team = order[idx] if order and 0 <= idx < len(order) else None
+    n = len(order)
+    if n == 0:
+        current_team = None
+    else:
+        round_num = idx // n
+        pick_in_round = idx % n
+        if round_num % 2 == 0:
+            sel = pick_in_round
+        else:
+            sel = n - 1 - pick_in_round
+        current_team = order[sel]
     return DraftStateOut(
         position_limits=cfg.get("position_limits", {}),
         draft_order=order,
@@ -59,11 +69,19 @@ async def make_pick(body: DraftPickIn, team_name: str = Depends(get_current_team
         raise HTTPException(status_code=400, detail="Draft not configured")
 
     order = cfg.get("draft_order", [])
-    idx = cfg.get("current_pick_index", 0)
+    idx = cfg.get("current_pick_index", 0)  # total picks made so far
     if not order:
         raise HTTPException(status_code=400, detail="No draft order configured")
 
-    current_team = order[idx % len(order)]
+    # Determine current team using snake order
+    n = len(order)
+    round_num = idx // n
+    pick_in_round = idx % n
+    if round_num % 2 == 0:
+        sel = pick_in_round
+    else:
+        sel = n - 1 - pick_in_round
+    current_team = order[sel]
     if team_name != current_team:
         raise HTTPException(status_code=403, detail=f"It's {current_team}'s turn")
 
@@ -96,8 +114,8 @@ async def make_pick(body: DraftPickIn, team_name: str = Depends(get_current_team
         {"$set": {"drafted_by": team_name, "drafted_at": datetime.utcnow()}},
     )
 
-    # Advance pick
-    next_idx = (idx + 1) % len(order)
+    # Advance pick (keep a running total; do not modulo)
+    next_idx = idx + 1
     await config_col().update_one({"_id": f"config:{league_name}"}, {"$set": {"current_pick_index": next_idx}})
 
     return {"ok": True}

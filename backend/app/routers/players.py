@@ -1,6 +1,6 @@
 import csv
 from io import StringIO
-from typing import List
+from typing import List, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -33,16 +33,30 @@ async def upload_players(
         raise HTTPException(status_code=400, detail="CSV must have 'name' and 'position' headers")
 
     docs = []
+    col = players_col()
+    # Determine starting rank. If overwriting, we reset to 1; otherwise continue after current max.
+    if overwrite:
+        rank_counter = 1
+    else:
+        existing = await col.find_one({"league_name": league_name, "rank": {"$ne": None}}, sort=[("rank", -1)])
+        rank_counter = (existing.get("rank") if existing else 0) + 1
     for row in reader:
         name = (row.get("name") or row.get("Name") or "").strip()
         position = (row.get("position") or row.get("Position") or "").strip()
         if name and position:
-            docs.append({"name": name, "position": position, "drafted_by": None, "league_name": league_name})
+            docs.append({
+                "name": name,
+                "position": position,
+                "drafted_by": None,
+                "league_name": league_name,
+                # Preserve upload order as rank (1-based)
+                "rank": rank_counter,
+            })
+            rank_counter += 1
 
     if not docs:
         raise HTTPException(status_code=400, detail="No valid players found in CSV")
 
-    col = players_col()
     if overwrite:
         await col.delete_many({"league_name": league_name})
 
@@ -53,17 +67,38 @@ async def upload_players(
 
 
 @router.get("/available", response_model=List[PlayerOut])
-async def list_available_players(team_name: str = Depends(get_current_team), league_name: str = Depends(get_current_league)):
+async def list_available_players(
+    position: Optional[str] = Query(None),
+    team_name: str = Depends(get_current_team),
+    league_name: str = Depends(get_current_league),
+):
     col = players_col()
-    cursor = col.find({"drafted_by": None, "league_name": league_name}).sort("name", 1)
+    base_filter = {"drafted_by": None, "league_name": league_name}
+    if position:
+        base_filter["position"] = position
+
+    # Return ranked players first (ascending by rank), then unranked by name
     players: List[PlayerOut] = []
-    async for doc in cursor:
+    ranked_cursor = col.find({**base_filter, "rank": {"$ne": None}}).sort("rank", 1)
+    async for doc in ranked_cursor:
         players.append(
             PlayerOut(
                 id=str(doc.get("_id")),
                 name=doc.get("name"),
                 position=doc.get("position"),
                 drafted_by=doc.get("drafted_by"),
+                rank=doc.get("rank"),
+            )
+        )
+    unranked_cursor = col.find({**base_filter, "rank": None}).sort("name", 1)
+    async for doc in unranked_cursor:
+        players.append(
+            PlayerOut(
+                id=str(doc.get("_id")),
+                name=doc.get("name"),
+                position=doc.get("position"),
+                drafted_by=doc.get("drafted_by"),
+                rank=doc.get("rank"),
             )
         )
     return players

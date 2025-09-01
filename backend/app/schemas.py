@@ -28,6 +28,7 @@ class PlayerOut(BaseModel):
     name: str
     position: str
     drafted_by: Optional[str] = None
+    rank: Optional[int] = None
 
 
 class DraftConfigIn(BaseModel):
