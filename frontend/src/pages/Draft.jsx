@@ -65,7 +65,7 @@ export default function Draft({ onLogout }) {
     }
   }
 
-  useEffect(() => { loadAll(); const id = setInterval(loadAll, 3000); return () => clearInterval(id) }, [])
+  useEffect(() => { loadAll(); const id = setInterval(loadAll, 3000); return () => clearInterval(id) }, [positionFilter])
 
   // Refetch available players when position filter changes
   useEffect(() => {
